@@ -30,6 +30,14 @@ public class SecurityUtils {
     @Value("${jwt.secret-key}")
     protected String SECRET_KEY;
 
+    @NonFinal
+    @Value("${jwt.refreshable-duration}")
+    protected int REFRESHABLE_DURATION;
+
+    @NonFinal
+    @Value("${jwt.accessible-duration}")
+    protected int ACCESSIBLE_DURATION;
+
     public String encryptPassword(String password) {
         return passwordEncoder.encode(password);
     }
@@ -81,10 +89,10 @@ public class SecurityUtils {
     }
 
     public String generateAccessToken(User user) {
-        return generateToken(user, 15);
+        return generateToken(user, ACCESSIBLE_DURATION);
     }
 
     public String generateRefreshToken(User user){
-        return generateToken(user, 60 * 24 * 7); // 7 days
+        return generateToken(user, REFRESHABLE_DURATION); // 7 days
     }
 }

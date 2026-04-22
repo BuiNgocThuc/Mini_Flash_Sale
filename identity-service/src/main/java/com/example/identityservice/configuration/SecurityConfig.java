@@ -41,6 +41,10 @@ public class SecurityConfig {
             "/api/auth/**"
     };
 
+    JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    CustomAccessDeniedHandler customAccessDeniedHandler;
+
+
     @NonFinal
     @Value("${jwt.secret-key}")
     String SECRET_KEY;
@@ -62,9 +66,13 @@ public class SecurityConfig {
                         .jwt(jwtConfigurer -> jwtConfigurer
                                 .decoder(jwtDecoder())
                                 .jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                        .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
-                        .accessDeniedHandler(new CustomAccessDeniedHandler())
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                        .accessDeniedHandler(customAccessDeniedHandler)
+                )
+                .exceptionHandling(exception -> exception
+                        .accessDeniedHandler(customAccessDeniedHandler)
                 );
+
 
         return http.build();
     }
