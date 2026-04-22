@@ -1,5 +1,6 @@
 package com.example.identityservice.configuration;
 
+import com.example.identityservice.controller.AuthController;
 import com.example.identityservice.security.CustomAccessDeniedHandler;
 import com.example.identityservice.security.JwtAuthenticationEntryPoint;
 import lombok.AccessLevel;
@@ -37,13 +38,12 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class SecurityConfig {
 
-    String[] PUBLIC_ENDPOINTS = {
-            "/api/auth/**"
-    };
+        String[] PUBLIC_ENDPOINTS = {
+                "/auth/**"
+        };
 
     JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     CustomAccessDeniedHandler customAccessDeniedHandler;
-
 
     @NonFinal
     @Value("${jwt.secret-key}")

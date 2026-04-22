@@ -16,8 +16,12 @@ public class AuthResponse {
 
     boolean isAuthenticated;
 
+    UserSummary userSummary;
+
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class UserSummary {
         String username;
         Set<String> roles;

@@ -1,5 +1,6 @@
 package com.example.identityservice.entity;
 
+import com.example.identityservice.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -35,6 +36,10 @@ public class User {
 
     @Column(unique = true, nullable = false, length = 100)
     String email;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    UserStatus status;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
