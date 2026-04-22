@@ -1,4 +1,4 @@
-package com.example.identityservice.dto.response;
+package com.example.identityservice.dto.response.user;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -9,7 +9,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserResponse {
+    String id;
     String username;
-    String password;
     String email;
 }
