@@ -1,7 +1,10 @@
 package com.example.identityservice.security;
 
 import com.example.identityservice.entity.User;
+import com.example.identityservice.exception.AppException;
+import com.example.identityservice.exception.ErrorCode;
 import com.example.identityservice.repository.UserRepository;
+import com.example.identityservice.utils.SecurityUtils;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -19,10 +22,11 @@ import java.util.stream.Collectors;
 public class CustomUserDetailsService implements UserDetailsService {
     UserRepository userRepository;
 
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByUsernameWithRoles(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getUsername())

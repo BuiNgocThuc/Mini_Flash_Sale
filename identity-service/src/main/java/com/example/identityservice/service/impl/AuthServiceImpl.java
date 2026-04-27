@@ -29,7 +29,9 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -53,30 +55,30 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse authenticate(AuthRequest request) {
         try {
-            authenticationManager.authenticate(
+            Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
             );
-        } catch (BadCredentialsException e) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+
+            var userDetails = (org.springframework.security.core.userdetails.User) authentication.getPrincipal();
+
+            var user = userRepository.findByUsernameWithRoles(userDetails.getUsername())
+                    .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
+
+            String accessToken = securityUtils.generateAccessToken(user);
+            String refreshToken = securityUtils.generateRefreshToken(user);
+
+            // Lưu Refresh Token vào Redis
+            refreshTokenRepository.save(RefreshToken.builder()
+                    .id(refreshToken)
+                    .userId(user.getId())
+                    .build());
+
+            return buildAuthResponse(user, accessToken, refreshToken);
+        } catch (BadCredentialsException | InternalAuthenticationServiceException e) {
+            System.out.println("Authentication failed cause: " + e.getMessage());
+            e.printStackTrace();
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
-
-        var user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-
-        if (!securityUtils.checkMatchPassword(request.getPassword(), user.getPassword())) {
-            throw new AppException(ErrorCode.PASSWORD_NOT_MATCHED);
-        }
-
-        String accessToken = securityUtils.generateAccessToken(user);
-        String refreshToken = securityUtils.generateRefreshToken(user);
-
-        // Lưu Refresh Token vào Redis
-        refreshTokenRepository.save(RefreshToken.builder()
-                .id(refreshToken)
-                .userId(user.getId())
-                .build());
-
-        return buildAuthResponse(user, accessToken, refreshToken);
     }
 
     @Override
@@ -88,9 +90,11 @@ public class AuthServiceImpl implements AuthService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new AppException(ErrorCode.EMAIL_EXISTED);
         }
-
         User user = userMapper.toUser(request);
-        user.setPassword(securityUtils.encryptPassword(request.getPassword()));
+
+        String encodedPassword = securityUtils.encryptPassword(user.getPassword());
+
+        user.setPassword(encodedPassword);
         user.setStatus(UserStatus.ACTIVE);
 
         Role userRole = roleRepository.findByName(RoleType.USER)

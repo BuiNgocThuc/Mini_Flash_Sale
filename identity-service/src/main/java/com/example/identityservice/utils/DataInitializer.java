@@ -16,6 +16,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -36,31 +38,25 @@ public class DataInitializer {
         return args -> {
             log.info("--- Bắt đầu quá trình Reset và Migrate dữ liệu ---");
 
-            // 1. XÓA DATA TRƯỚC (Theo thứ tự ưu tiên khóa ngoại)
-            // Xóa sạch User (bao gồm cả liên kết trong bảng USER_ROLES)
+            // Xóa sạch theo thứ tự để tránh lỗi khóa ngoại
             userRepository.deleteAll();
-            // Xóa sạch Role (bao gồm cả liên kết trong bảng ROLE_PERMISSIONS)
             roleRepository.deleteAll();
-            // Xóa sạch Permission
             permissionRepository.deleteAll();
 
             log.info("--- Đã xóa sạch dữ liệu cũ ---");
 
             if (permissionRepository.count() == 0) {
-                log.info("--- Khởi tạo Permissions ---");
                 initPermissions(permissionRepository);
             }
 
             if (roleRepository.count() == 0) {
-                log.info("--- Khởi tạo Roles ---");
                 initRoles(roleRepository, permissionRepository);
             }
 
-            // Đổi từ initAdminUser sang initUsers để tạo nhiều tài khoản
             if (userRepository.count() == 0) {
-                log.info("--- Khởi tạo danh sách Users mẫu ---");
                 initUsers(userRepository, roleRepository);
             }
+            log.info("--- Quá trình khởi tạo dữ liệu thành công! ---");
         };
     }
 
@@ -86,31 +82,58 @@ public class DataInitializer {
     }
 
     private void initUsers(UserRepository userRepo, RoleRepository roleRepo) {
-        // Lấy sẵn 2 Role để gán
         Role adminRole = roleRepo.findByName(RoleType.ADMIN)
                 .orElseThrow(() -> new RuntimeException("Role ADMIN không tồn tại"));
         Role userRole = roleRepo.findByName(RoleType.USER)
                 .orElseThrow(() -> new RuntimeException("Role USER không tồn tại"));
 
         String commonPassword = securityUtils.encryptPassword("Admin@1234");
+        List<User> users = new ArrayList<>();
 
-        List<User> users = List.of(
-                // 3 Tài khoản ADMIN
-                User.builder().username("admin").password(commonPassword).email("admin@smartosc.com")
-                        .status(UserStatus.ACTIVE).roles(Set.of(adminRole)).build(),
-                User.builder().username("admin1").password(commonPassword).email("admin1@smartosc.com")
-                        .status(UserStatus.ACTIVE).roles(Set.of(adminRole)).build(),
-                User.builder().username("admin2").password(commonPassword).email("admin2@smartosc.com")
-                        .status(UserStatus.ACTIVE).roles(Set.of(adminRole)).build(),
+        for (int i = 1; i <= 20; i++) {
+            String username;
+            Set<Role> roles;
 
-                // 2 Tài khoản USER
-                User.builder().username("user1").password(commonPassword).email("user1@smartosc.com")
-                        .status(UserStatus.ACTIVE).roles(Set.of(userRole)).build(),
-                User.builder().username("user2").password(commonPassword).email("user2@smartosc.com")
-                        .status(UserStatus.ACTIVE).roles(Set.of(userRole)).build()
-        );
+            // Phân bổ 5 ADMIN và 15 USER
+            if (i <= 5) {
+                username = "admin" + i;
+                roles = Set.of(adminRole);
+            } else {
+                username = "user" + (i - 5);
+                roles = Set.of(userRole);
+            }
+
+            // --- QUAN TRỌNG: XỬ LÝ DOB ĐỂ TRÁNH ORA-01400 ---
+            // Bước 1: Luôn gán một giá trị mặc định để không bị NULL
+            LocalDate dateOfBirth = LocalDate.of(1995, 1, 1);
+
+            // Bước 2: Logic cài bẫy tháng 2 cho đúng 10 Khách hàng (USER)
+            if (i > 5 && i <= 15) {
+                // i từ 6 đến 15 tương ứng với user1 đến user10
+                if (username.equals("user1")) {
+                    // "Ông kẹ" sinh ngày nhuận để demo bug
+                    dateOfBirth = LocalDate.of(2024, 2, 29);
+                    log.info(">>> Đã cài bẫy Leap Year cho: {} (2024-02-29)", username);
+                } else {
+                    // 9 Users khác (user2 - user10) sinh rải rác trong tháng 2
+                    dateOfBirth = LocalDate.of(1998, 2, (i % 28) + 1);
+                }
+            } else {
+                // Các Admin và 5 Users còn lại sinh vào các tháng khác
+                dateOfBirth = LocalDate.of(2000, (i % 11) + 1, 10);
+            }
+
+            users.add(User.builder()
+                    .username(username)
+                    .password(commonPassword)
+                    .email(username + "@gmail.com")
+                    .status(UserStatus.ACTIVE)
+                    .roles(roles)
+                    .dob(dateOfBirth) // Đảm bảo luôn có giá trị
+                    .build());
+        }
 
         userRepo.saveAll(users);
-        log.info("Đã khởi tạo thành công 3 Admin và 2 User mẫu!");
+        log.info("--- Đã khởi tạo 20 Users mẫu (5 Admin, 15 User). 10 Users sinh tháng 2. ---");
     }
 }

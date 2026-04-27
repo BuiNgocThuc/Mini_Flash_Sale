@@ -1,7 +1,7 @@
 package com.example.identityservice.configuration;
 
-import com.example.identityservice.controller.AuthController;
 import com.example.identityservice.security.CustomAccessDeniedHandler;
+import com.example.identityservice.security.CustomUserDetailsService;
 import com.example.identityservice.security.JwtAuthenticationEntryPoint;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -39,11 +41,13 @@ import java.util.List;
 public class SecurityConfig {
 
         String[] PUBLIC_ENDPOINTS = {
-                "/auth/**"
+                "/auth/**",
+                "/users/**"
         };
 
     JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     CustomAccessDeniedHandler customAccessDeniedHandler;
+    CustomUserDetailsService customUserDetailsService;
 
     @NonFinal
     @Value("${jwt.secret-key}")
@@ -98,6 +102,14 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(customUserDetailsService);
+
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
     }
 
     @Bean

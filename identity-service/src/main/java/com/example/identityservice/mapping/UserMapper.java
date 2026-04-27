@@ -5,13 +5,20 @@ import com.example.identityservice.dto.response.user.UserResponse;
 import com.example.identityservice.entity.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @Mapper(componentModel = "spring")
 public interface UserMapper {
 
     @Mapping(target = "roles", ignore = true)
+    @Mapping(target = "password", qualifiedByName = "encryptPassword")
     User toUser(UserCreationRequest request);
 
-    UserResponse toUserResponse(User user);
+    @Named("encryptPassword")
+    default String encryptPassword(String password) {
+        return new BCryptPasswordEncoder().encode(password);
+    }
 
+    UserResponse toUserResponse(User user);
 }
