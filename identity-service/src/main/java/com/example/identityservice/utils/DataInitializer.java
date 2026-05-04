@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-//@Configuration
+@Configuration
 @RequiredArgsConstructor
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -38,7 +38,6 @@ public class DataInitializer {
         return args -> {
             log.info("--- Bắt đầu quá trình Reset và Migrate dữ liệu ---");
 
-            // Xóa sạch theo thứ tự để tránh lỗi khóa ngoại
             userRepository.deleteAll();
             roleRepository.deleteAll();
             permissionRepository.deleteAll();
@@ -94,7 +93,7 @@ public class DataInitializer {
             String username;
             Set<Role> roles;
 
-            // Phân bổ 5 ADMIN và 15 USER
+            // 5 ADMIN and 15 USER
             if (i <= 5) {
                 username = "admin" + i;
                 roles = Set.of(adminRole);
@@ -103,23 +102,15 @@ public class DataInitializer {
                 roles = Set.of(userRole);
             }
 
-            // --- QUAN TRỌNG: XỬ LÝ DOB ĐỂ TRÁNH ORA-01400 ---
-            // Bước 1: Luôn gán một giá trị mặc định để không bị NULL
-            LocalDate dateOfBirth = LocalDate.of(1995, 1, 1);
+            LocalDate dateOfBirth;
 
-            // Bước 2: Logic cài bẫy tháng 2 cho đúng 10 Khách hàng (USER)
             if (i > 5 && i <= 15) {
-                // i từ 6 đến 15 tương ứng với user1 đến user10
                 if (username.equals("user1")) {
-                    // "Ông kẹ" sinh ngày nhuận để demo bug
                     dateOfBirth = LocalDate.of(2024, 2, 29);
-                    log.info(">>> Đã cài bẫy Leap Year cho: {} (2024-02-29)", username);
                 } else {
-                    // 9 Users khác (user2 - user10) sinh rải rác trong tháng 2
                     dateOfBirth = LocalDate.of(1998, 2, (i % 28) + 1);
                 }
             } else {
-                // Các Admin và 5 Users còn lại sinh vào các tháng khác
                 dateOfBirth = LocalDate.of(2000, (i % 11) + 1, 10);
             }
 
@@ -129,7 +120,7 @@ public class DataInitializer {
                     .email(username + "@gmail.com")
                     .status(UserStatus.ACTIVE)
                     .roles(roles)
-                    .dob(dateOfBirth) // Đảm bảo luôn có giá trị
+                    .dob(dateOfBirth)
                     .build());
         }
 

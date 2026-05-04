@@ -21,6 +21,7 @@ import com.example.identityservice.redis.RefreshToken;
 import com.example.identityservice.repository.RoleRepository;
 import com.example.identityservice.repository.UserRepository;
 import com.example.identityservice.repository.redis.RefreshTokenRepository;
+import com.example.identityservice.security.UserPrincipal;
 import com.example.identityservice.utils.SecurityUtils;
 import com.example.identityservice.service.AuthService;
 import lombok.AccessLevel;
@@ -59,10 +60,9 @@ public class AuthServiceImpl implements AuthService {
                     new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
             );
 
-            var userDetails = (org.springframework.security.core.userdetails.User) authentication.getPrincipal();
+            var userPrincipal = (UserPrincipal) authentication.getPrincipal();
 
-            var user = userRepository.findByUsernameWithRoles(userDetails.getUsername())
-                    .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
+            User user = userPrincipal.user();
 
             String accessToken = securityUtils.generateAccessToken(user);
             String refreshToken = securityUtils.generateRefreshToken(user);
@@ -115,7 +115,6 @@ public class AuthServiceImpl implements AuthService {
         return userMapper.toUserResponse(user);
     }
 
-    // --- LÀM MỚI TOKEN (Token Rotation) ---
     @Override
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         var storedToken = refreshTokenRepository.findById(request.getRefreshToken())
@@ -138,7 +137,6 @@ public class AuthServiceImpl implements AuthService {
         return buildAuthResponse(user, newAccessToken, newRefreshToken);
     }
 
-    // --- KIỂM TRA TOKEN ---
     @Override
     public IntrospectResponse introspect(IntrospectRequest request) {
         boolean isValid = true;

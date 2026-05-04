@@ -32,6 +32,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class SecurityUtils {
+
     PasswordEncoder passwordEncoder;
 
     @NonFinal
@@ -50,9 +51,6 @@ public class SecurityUtils {
         return passwordEncoder.encode(password);
     }
 
-    public boolean checkMatchPassword(String rawPassword, String encodedPassword) {
-        return passwordEncoder.matches(rawPassword, encodedPassword);
-    }
 
     public String generateToken(User user, Duration exp) {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);

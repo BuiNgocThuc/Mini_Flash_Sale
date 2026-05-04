@@ -4,17 +4,13 @@ import com.example.identityservice.entity.User;
 import com.example.identityservice.exception.AppException;
 import com.example.identityservice.exception.ErrorCode;
 import com.example.identityservice.repository.UserRepository;
-import com.example.identityservice.utils.SecurityUtils;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,12 +24,6 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByUsernameWithRoles(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
-        return org.springframework.security.core.userdetails.User
-                .withUsername(user.getUsername())
-                .password(user.getPassword())
-                .authorities(user.getRoles().stream()
-                        .map(role -> new SimpleGrantedAuthority(role.getName().name()))
-                        .collect(Collectors.toList()))
-                .build();
+        return new UserPrincipal(user);
     }
 }
